@@ -8,200 +8,206 @@ namespace Chip8
 {
 	public class VM
 	{
+		public enum RegisterName
+		{
+			V0 = 0, V1, V2, V3,
+			V4, V5, V6, V7,
+			V8, V9, VA, VB,
+			VC, VD, VE, VF
+		};
+
 		public ushort PC { get; private set; }
-		public byte[] memory = new byte[0xfff];
-
 		public byte SP { get; private set; }
-		ushort[] stack = new ushort[0x00f];
-
-		byte[] registers = new byte[0x010];
-
 		public ushort I { get; private set; }
 
-		private Opcode opcode;
-		private Random random = new Random();
-		
+		private byte[] mMemory = new byte[0xFFF];
+		private ushort[] mStack = new ushort[0x00F];
+		private byte[] mRegisters = new byte[0x10];
+
 		//byte delayTimer;
 		//byte soundTimer;
+
+		private Opcode mOpcode;
+		private Random mRandom = new Random();
 
 		private void Initialize()
 		{
 			PC = 0x200;
 			SP = 0x0;
 			I = 0x0;
-			opcode.Update(0x0, 0x0);
-			Array.Clear(memory, 0, memory.Length);
-			Array.Clear(stack, 0, stack.Length);
-			Array.Clear(registers, 0, registers.Length);
+			Array.Clear(mMemory, 0, mMemory.Length);
+			Array.Clear(mStack, 0, mStack.Length);
+			Array.Clear(mRegisters, 0, mRegisters.Length);
+			mOpcode.Update(0x0, 0x0);
+			mRandom = new Random();
 			//delayTimer = 0;
 			//soundTimer = 0;
 		}
 
+		public void Seed(int seed) => mRandom = new Random(seed);
+
 		public void Load(IEnumerable<Opcode> program)
 		{
-			if (program.Count() > 0xfff)
-				throw new InvalidOperationException();
-			
+			// TODO: check length
 			Initialize();
 			int idx = 0x200;
 			foreach (var op in program)
 			{
-				memory[idx] = op.mUpper;
+				mMemory[idx] = op.mUpper;
 				idx++;
-				memory[idx] = op.mLower;
+				mMemory[idx] = op.mLower;
 				idx++;
 			}
 		}
 
-		public byte this[int i]
-		{
-			get => memory[i];
-		}
+		public byte this[int i] => mMemory[i];
 
-		public byte Register(int idx) => registers[idx];
+		public byte Register(RegisterName vx) => mRegisters[(int)vx];
 
 		public void OneCycle()
 		{
-			// fetch opcode
-			opcode.Update(memory[PC], memory[PC + 1]);
+			// fetch opcode and execute
+			mOpcode.Update(mMemory[PC], mMemory[PC + 1]);
 
-			// execute
-			switch (opcode.Type)
+			switch (mOpcode.Type)
 			{
 				case 0x0:
-					if (opcode.Value == 0x00e0)
+					if (mOpcode.Value == 0x00e0)
 					{
 						// 00e0 - clear display
 					}
-					else if (opcode.Value == 0x00ee)
+					else if (mOpcode.Value == 0x00ee)
 					{
-						// 00xx - return from subroutine
+						// 00ee - return from subroutine
 						SP--;
-						PC = (ushort)(stack[SP] + 2);
-						stack[SP] = 0x0;
+						PC = (ushort)(mStack[SP] + 2);
+						mStack[SP] = 0x0;
 					}
 					break;
 				case 0x1:
 					// 1nnn - jump to location nnn
-					PC = opcode.NNN;
+					PC = mOpcode.NNN;
 					break;
 				case 0x2:
 					// 2nnn - call subroutine at nnn
-					stack[SP] = PC;
-					PC = opcode.NNN;
+					mStack[SP] = PC;
+					PC = mOpcode.NNN;
 					SP++;
 					break;
 				case 0x3:
 					// 3xkk - skip next instruction if Vx == kk
-					if (registers[opcode.X] == opcode.mLower)
+					if (mRegisters[mOpcode.X] == mOpcode.mLower)
 						PC += 4;
 					else
 						PC += 2;
 					break;
 				case 0x4:
 					// 4xkk - skip next instruction if Vx != kk
-					if (registers[opcode.X] != opcode.mLower)
+					if (mRegisters[mOpcode.X] != mOpcode.mLower)
 						PC += 4;
 					else
 						PC += 2;
 					break;
 				case 0x5:
-					// 5xy0 - skip next instruction if Vx == Vy
-					if (registers[opcode.X] != registers[opcode.Y])
-						PC += 4;
-					else
-						PC += 2;
-					break;
-				case 0x6:
-					// 6xkk - set Vx := kk
-					registers[opcode.X] = opcode.mLower;
-					PC += 2;
-					break;
-				case 0x7:
-					// 7xkk - set Vx := Vx + kk
-					registers[opcode.X] += opcode.mLower;
-					PC += 2;
-					break;
-				case 0x8:
-					switch (opcode.Nibble)
+					if (mOpcode.Nibble == 0)
 					{
-						case 0x0:
-							// 8xy0 - stores value of register Vy into Vx
-							registers[opcode.X] = registers[opcode.Y];
-							break;
-						case 0x1:
-							// 8xy1 - set Vx := Vx OR Vy.
-							registers[opcode.X] = (byte)(registers[opcode.X] | registers[opcode.Y]);
-							break;
-						case 0x2:
-							// 8xy2 - set Vx := Vx AND Vy.
-							registers[opcode.X] = (byte)(registers[opcode.X] & registers[opcode.Y]);
-							break;
-						case 0x3:
-							// 8xy3 - set Vx := Vx XOR Vy.
-							registers[opcode.X] = (byte)(registers[opcode.X] ^ registers[opcode.Y]);
-							break;
-						case 0x4:
-							// 8xy4 - set Vx := Vx + Vy, set VF = carry.
-							int sum = registers[opcode.X] + registers[opcode.Y];
-							registers[0xf] = (byte)((sum > 255) ? 1 : 0);
-							registers[opcode.X] = (byte)(0xff & sum);
-							break;
-						case 0x5:
-							// 8xy5 - set Vx := Vx - Vy, set VF = NOT borrow.
-							registers[0xf] = (byte)((registers[opcode.X] > registers[opcode.Y]) ? 1 : 0);
-							registers[opcode.X] -= registers[opcode.Y];
-							break;
-						case 0x6:
-							// 8xy6 - bit shift
-							// If the least-significant bit of Vx is 1, then VF is set to 1, otherwise 0. Then Vx is divided by 2.
-							registers[0xf] = (byte)(0x1 & registers[opcode.X]);
-							registers[opcode.X] = (byte)(registers[opcode.X] >> 1);
-							break;
-						case 0x7:
-							// 8xy7 - set Vx := Vy - Vx, set VF = NOT borrow.
-							registers[0xf] = (byte)((registers[opcode.Y] > registers[opcode.X]) ? 1 : 0);
-							registers[opcode.X] = (byte)(registers[opcode.Y] - registers[opcode.X]);
-							break;
-						case 0xe:
-							// 8xye - bit shift
-							registers[0xf] = (byte)(0x80 & registers[opcode.X]);
-							registers[opcode.X] = (byte)(registers[opcode.X] << 1);
-							break;
-					}
-					PC += 2;
-					break;
-				case 0x9:
-					if (opcode.Nibble == 0)
-					{
-						// 9xy0 - Skip next instruction if Vx != Vy.
-						if (registers[opcode.X] != registers[opcode.Y])
+						// 5xy0 - skip next instruction if Vx == Vy
+						if (mRegisters[mOpcode.X] == mRegisters[mOpcode.Y])
 							PC += 4;
 						else
 							PC += 2;
 					}
 					break;
-				case 0xa:
-					// annn - set I := nnn
-					I = opcode.NNN;
+				case 0x6:
+					// 6xkk - set Vx := kk
+					mRegisters[mOpcode.X] = mOpcode.mLower;
 					PC += 2;
 					break;
-				case 0xb:
-					// bnnn - Jump to location nnn + V0.
-					PC = (ushort)(opcode.NNN + registers[0x0]);
-					break;
-				case 0xc:
-					// cxkk - set Vx := random byte AND kk
-					registers[opcode.X] = (byte)(random.Next(0, 255) & opcode.mLower);
+				case 0x7:
+					// 7xkk - set Vx := Vx + kk
+					mRegisters[mOpcode.X] += mOpcode.mLower;
 					PC += 2;
 					break;
-				case 0xd:
+				case 0x8:
+					switch (mOpcode.Nibble)
+					{
+						case 0x0:
+							// 8xy0 - stores value of register Vy into Vx
+							mRegisters[mOpcode.X] = mRegisters[mOpcode.Y];
+							break;
+						case 0x1:
+							// 8xy1 - set Vx := Vx OR Vy.
+							mRegisters[mOpcode.X] = (byte)(mRegisters[mOpcode.X] | mRegisters[mOpcode.Y]);
+							break;
+						case 0x2:
+							// 8xy2 - set Vx := Vx AND Vy.
+							mRegisters[mOpcode.X] = (byte)(mRegisters[mOpcode.X] & mRegisters[mOpcode.Y]);
+							break;
+						case 0x3:
+							// 8xy3 - set Vx := Vx XOR Vy.
+							mRegisters[mOpcode.X] = (byte)(mRegisters[mOpcode.X] ^ mRegisters[mOpcode.Y]);
+							break;
+						case 0x4:
+							// 8xy4 - set Vx := Vx + Vy, set VF = carry.
+							int sum = mRegisters[mOpcode.X] + mRegisters[mOpcode.Y];
+							mRegisters[0xF] = (byte)((sum > 255) ? 1 : 0);
+							mRegisters[mOpcode.X] = (byte)(0xff & sum);
+							break;
+						case 0x5:
+							// 8xy5 - set Vx := Vx - Vy, set VF = NOT borrow.
+							mRegisters[0xF] = (byte)((mRegisters[mOpcode.X] > mRegisters[mOpcode.Y]) ? 1 : 0);
+							mRegisters[mOpcode.X] -= mRegisters[mOpcode.Y];
+							break;
+						case 0x6:
+							// 8xy6 - bit shift
+							// If the least-significant bit of Vy is 1, then VF is set to 1, otherwise 0. Then Vy is divided by 2.
+							mRegisters[0xF] = (byte)(0x1 & mRegisters[mOpcode.Y]);
+							mRegisters[mOpcode.X] = (byte)(mRegisters[mOpcode.Y] >> 1);
+							break;
+						case 0x7:
+							// 8xy7 - set Vx := Vy - Vx, set VF = NOT borrow.
+							mRegisters[0xF] = (byte)((mRegisters[mOpcode.Y] > mRegisters[mOpcode.X]) ? 1 : 0);
+							mRegisters[mOpcode.X] = (byte)(mRegisters[mOpcode.Y] - mRegisters[mOpcode.X]);
+							break;
+						case 0xE:
+							// 8xyE - bit shift
+							mRegisters[0xF] = (byte)(mRegisters[mOpcode.Y] >> 7);
+							mRegisters[mOpcode.X] = (byte)(mRegisters[mOpcode.Y] << 1);
+							break;
+					}
+					PC += 2;
+					break;
+				case 0x9:
+					if (mOpcode.Nibble == 0)
+					{
+						// 9xy0 - Skip next instruction if Vx != Vy.
+						if (mRegisters[mOpcode.X] != mRegisters[mOpcode.Y])
+							PC += 4;
+						else
+							PC += 2;
+					}
+					break;
+				case 0xA:
+					// Annn - set I := nnn
+					I = mOpcode.NNN;
+					PC += 2;
+					break;
+				case 0xB:
+					// Bnnn - Jump to location nnn + V0.
+					PC = (ushort)(mOpcode.NNN + mRegisters[0x0]);
+					break;
+				case 0xC:
+					// Cxkk - set Vx := random byte AND kk
+					mRegisters[mOpcode.X] = (byte)(mRandom.Next(0, 255) & mOpcode.mLower);
+					PC += 2;
+					break;
+				case 0xD:
 					// TODO - drawing
 					break;
-				case 0xe:
+				case 0xE:
 					// TODO - keyboard input
 					break;
-				case 0xf:
+				case 0xF:
 					// TODO
 					break;
 			}
@@ -209,6 +215,7 @@ namespace Chip8
 			// TODO
 			// -update timers
 			// -PC, SP bounds check
+			// -PC & 0x1 == 0
 		}
 	}
 }

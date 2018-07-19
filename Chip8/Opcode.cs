@@ -14,7 +14,7 @@ namespace Chip8
 		public Opcode(ushort op)
 		{
 			mUpper = (byte)(op >> 8);
-			mLower = (byte)(op & 0x0ff);
+			mLower = (byte)(op & 0x0FF);
 		}
 
 		public void Update(byte upper, byte lower)
@@ -24,8 +24,8 @@ namespace Chip8
 		}
 
 		public byte Type => (byte)(mUpper >> 4);
-		public byte Nibble => (byte)(mLower & 0x0f);
-		public byte X => (byte)(mUpper & 0x0f);
+		public byte Nibble => (byte)(mLower & 0x0F);
+		public byte X => (byte)(mUpper & 0x0F);
 		public byte Y => (byte)(mLower >> 4);
 		public ushort NNN => (ushort)((X << 8) + mLower);
 		public ushort Value => (ushort)((mUpper << 8) + mLower);
