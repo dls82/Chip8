@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Chip8
 {
@@ -20,9 +17,9 @@ namespace Chip8
 			VC, VD, VE, VF
 		};
 
-		public ushort PC { get; private set; }
-		public byte SP { get; private set; }
-		public ushort I { get; private set; }
+		public ushort PC { get; private set; }	// program counter
+		public byte SP { get; private set; }	// stack pointer
+		public ushort I { get; private set; }	// void pointer
 
 		private byte[] mMemory = new byte[MEMORY_SIZE_BYTES];
 		private ushort[] mStack = new ushort[STACK_LENGTH];
@@ -175,7 +172,7 @@ namespace Chip8
 							mRegisters[mOpcode.X] -= mRegisters[mOpcode.Y];
 							break;
 						case 0x6:
-							// 8xy6 - bit shift
+							// 8xy6 - bit shift right
 							// If the least-significant bit of Vy is 1, then VF is set to 1, otherwise 0. Then Vy is divided by 2.
 							mRegisters[0xF] = (byte)(0x1 & mRegisters[mOpcode.Y]);
 							mRegisters[mOpcode.X] = (byte)(mRegisters[mOpcode.Y] >> 1);
@@ -186,7 +183,7 @@ namespace Chip8
 							mRegisters[mOpcode.X] = (byte)(mRegisters[mOpcode.Y] - mRegisters[mOpcode.X]);
 							break;
 						case 0xE:
-							// 8xyE - bit shift
+							// 8xyE - bit shift left
 							mRegisters[0xF] = (byte)(mRegisters[mOpcode.Y] >> 7);
 							mRegisters[mOpcode.X] = (byte)(mRegisters[mOpcode.Y] << 1);
 							break;

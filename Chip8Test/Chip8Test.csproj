@@ -52,6 +52,7 @@
     <Compile Include="TestVM1.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TestVM2.cs" />
+    <Compile Include="TestVM3.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

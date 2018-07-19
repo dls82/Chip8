@@ -1,7 +1,6 @@
-﻿using System;
+﻿using Chip8;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
-using Chip8;
 
 namespace Chip8Test
 {
