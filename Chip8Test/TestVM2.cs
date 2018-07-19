@@ -31,40 +31,40 @@ namespace Chip8Test
 			Assert.AreEqual(0x0, vm.Register(VM.RegisterName.V1));
 			Assert.AreEqual(0x0, vm.Register(VM.RegisterName.V2));
 
-			vm.OneCycle(); // 0x6112
+			vm.Execute(); // 0x6112
 			Assert.AreEqual(0x202, vm.PC);
 			Assert.AreEqual(0x0, vm.Register(VM.RegisterName.V0));
 			Assert.AreEqual(0x12, vm.Register(VM.RegisterName.V1));
 			Assert.AreEqual(0x0, vm.Register(VM.RegisterName.V2));
 
-			vm.OneCycle(); // 0x6234
+			vm.Execute(); // 0x6234
 			Assert.AreEqual(0x204, vm.PC);
 			Assert.AreEqual(0x0, vm.Register(VM.RegisterName.V0));
 			Assert.AreEqual(0x12, vm.Register(VM.RegisterName.V1));
 			Assert.AreEqual(0x34, vm.Register(VM.RegisterName.V2));
 
-			vm.OneCycle(); // 0x8010
+			vm.Execute(); // 0x8010
 			Assert.AreEqual(0x206, vm.PC);
 			Assert.AreEqual(0x12, vm.Register(VM.RegisterName.V0));
 			Assert.AreEqual(0x12, vm.Register(VM.RegisterName.V1));
 			Assert.AreEqual(0x34, vm.Register(VM.RegisterName.V2));
 
-			vm.OneCycle(); // 0x8121
+			vm.Execute(); // 0x8121
 			Assert.AreEqual(0x208, vm.PC);
 			Assert.AreEqual(0x12, vm.Register(VM.RegisterName.V0));
 			Assert.AreEqual(0x12 | 0x34, vm.Register(VM.RegisterName.V1));
 			Assert.AreEqual(0x34, vm.Register(VM.RegisterName.V2));
 
-			vm.OneCycle(); // 0x8022
+			vm.Execute(); // 0x8022
 			Assert.AreEqual(0x20A, vm.PC);
 			Assert.AreEqual(0x12 & 0x34, vm.Register(VM.RegisterName.V0));
 			Assert.AreEqual(0x12 | 0x34, vm.Register(VM.RegisterName.V1));
 			Assert.AreEqual(0x34, vm.Register(VM.RegisterName.V2));
 
 			// swap registers V0 and V1
-			vm.OneCycle();
-			vm.OneCycle();
-			vm.OneCycle();
+			vm.Execute();
+			vm.Execute();
+			vm.Execute();
 			Assert.AreEqual(0x210, vm.PC);
 			Assert.AreEqual(0x12 | 0x34, vm.Register(VM.RegisterName.V0));
 			Assert.AreEqual(0x12 & 0x34, vm.Register(VM.RegisterName.V1));
@@ -93,58 +93,58 @@ namespace Chip8Test
 			};
 			vm.Load(program);
 
-			vm.OneCycle(); // 0x60FA
-			vm.OneCycle(); // 0x6112
-			vm.OneCycle(); // 0x6234
+			vm.Execute(); // 0x60FA
+			vm.Execute(); // 0x6112
+			vm.Execute(); // 0x6234
 			Assert.AreEqual(0x206, vm.PC);
 			Assert.AreEqual(0xFA, vm.Register(VM.RegisterName.V0));
 			Assert.AreEqual(0x12, vm.Register(VM.RegisterName.V1));
 			Assert.AreEqual(0x34, vm.Register(VM.RegisterName.V2));
 
-			vm.OneCycle(); // 0x8014
+			vm.Execute(); // 0x8014
 			Assert.AreEqual(0x208, vm.PC);
 			Assert.AreEqual((0xFA + 0x12) & 0xFF, vm.Register(VM.RegisterName.V0));
 			Assert.AreEqual(0x12, vm.Register(VM.RegisterName.V1));
 			Assert.AreEqual(0x34, vm.Register(VM.RegisterName.V2));
 			Assert.AreEqual(0x01, vm.Register(VM.RegisterName.VF));
 
-			vm.OneCycle(); // 0x8124
+			vm.Execute(); // 0x8124
 			Assert.AreEqual(0x20A, vm.PC);
 			Assert.AreEqual((0xFA + 0x12) & 0xFF, vm.Register(VM.RegisterName.V0));
 			Assert.AreEqual((0x12 + 0x34) & 0xFF, vm.Register(VM.RegisterName.V1));
 			Assert.AreEqual(0x34, vm.Register(VM.RegisterName.V2));
 			Assert.AreEqual(0x00, vm.Register(VM.RegisterName.VF));
 
-			vm.OneCycle(); // 0x8015
+			vm.Execute(); // 0x8015
 			Assert.AreEqual(0x20C, vm.PC);
 			Assert.AreEqual((((0xFA + 0x12) - ((0x12 + 0x34) & 0xFF)) & 0xFF) & 0xFF, vm.Register(VM.RegisterName.V0));
 			Assert.AreEqual((0x12 + 0x34) & 0xFF, vm.Register(VM.RegisterName.V1));
 			Assert.AreEqual(0x34, vm.Register(VM.RegisterName.V2));
 			Assert.AreEqual(0x00, vm.Register(VM.RegisterName.VF));
 
-			vm.OneCycle(); // 0x8125
+			vm.Execute(); // 0x8125
 			Assert.AreEqual(0x20E, vm.PC);
 			Assert.AreEqual((((0xFA + 0x12) - ((0x12 + 0x34) & 0xFF)) & 0xFF) & 0xFF, vm.Register(VM.RegisterName.V0));
 			Assert.AreEqual((((0x12 + 0x34) & 0xFF) - 0x34) & 0xFF, vm.Register(VM.RegisterName.V1));
 			Assert.AreEqual(0x34, vm.Register(VM.RegisterName.V2));
 			Assert.AreEqual(0x01, vm.Register(VM.RegisterName.VF));
 
-			vm.OneCycle(); // 0x6501
-			vm.OneCycle(); // 0x6603
-			vm.OneCycle(); // 0x6702
+			vm.Execute(); // 0x6501
+			vm.Execute(); // 0x6603
+			vm.Execute(); // 0x6702
 			Assert.AreEqual(0x214, vm.PC);
 			Assert.AreEqual(0x01, vm.Register(VM.RegisterName.V5));
 			Assert.AreEqual(0x03, vm.Register(VM.RegisterName.V6));
 			Assert.AreEqual(0x02, vm.Register(VM.RegisterName.V7));
 
-			vm.OneCycle(); // 0x8567
+			vm.Execute(); // 0x8567
 			Assert.AreEqual(0x216, vm.PC);
 			Assert.AreEqual(0x02, vm.Register(VM.RegisterName.V5));
 			Assert.AreEqual(0x03, vm.Register(VM.RegisterName.V6));
 			Assert.AreEqual(0x02, vm.Register(VM.RegisterName.V7));
 			Assert.AreEqual(0x01, vm.Register(VM.RegisterName.VF));
 
-			vm.OneCycle(); // 0x8677
+			vm.Execute(); // 0x8677
 			Assert.AreEqual(0x218, vm.PC);
 			Assert.AreEqual(0x02, vm.Register(VM.RegisterName.V5));
 			Assert.AreEqual((0x02 - 0x03) & 0xFF, vm.Register(VM.RegisterName.V6));
@@ -166,13 +166,13 @@ namespace Chip8Test
 				new Opcode(0x882E), // set V8 := SHL V2
 			};
 			vm.Load(program);
-			vm.OneCycle();
-			vm.OneCycle();
+			vm.Execute();
+			vm.Execute();
 			Assert.AreEqual(0x204, vm.PC);
 			Assert.AreEqual(0x13, vm.Register(VM.RegisterName.V1));
 			Assert.AreEqual(0xF4, vm.Register(VM.RegisterName.V2));
 
-			vm.OneCycle(); // 0x8516 - SHR 0b00010011
+			vm.Execute(); // 0x8516 - SHR 0b00010011
 			Assert.AreEqual(0x206, vm.PC);
 			Assert.AreEqual(0x13, vm.Register(VM.RegisterName.V1));
 			Assert.AreEqual(0xF4, vm.Register(VM.RegisterName.V2));
@@ -181,7 +181,7 @@ namespace Chip8Test
 
 
 
-			vm.OneCycle(); // 0x8626 - SHR 0b11110100
+			vm.Execute(); // 0x8626 - SHR 0b11110100
 			Assert.AreEqual(0x208, vm.PC);
 			Assert.AreEqual(0x13, vm.Register(VM.RegisterName.V1));
 			Assert.AreEqual(0xF4, vm.Register(VM.RegisterName.V2));
@@ -189,14 +189,14 @@ namespace Chip8Test
 			Assert.AreEqual(0x00, vm.Register(VM.RegisterName.VF));
 
 
-			vm.OneCycle(); // 0x871E - SHL 0b00010011
+			vm.Execute(); // 0x871E - SHL 0b00010011
 			Assert.AreEqual(0x20A, vm.PC);
 			Assert.AreEqual(0x13, vm.Register(VM.RegisterName.V1));
 			Assert.AreEqual(0xF4, vm.Register(VM.RegisterName.V2));
 			Assert.AreEqual(0x13 << 1, vm.Register(VM.RegisterName.V7));
 			Assert.AreEqual(0x00, vm.Register(VM.RegisterName.VF));
 
-			vm.OneCycle(); // 0x882E - - SHL 0b11110100
+			vm.Execute(); // 0x882E - - SHL 0b11110100
 			Assert.AreEqual(0x20C, vm.PC);
 			Assert.AreEqual(0x13, vm.Register(VM.RegisterName.V1));
 			Assert.AreEqual(0xF4, vm.Register(VM.RegisterName.V2));

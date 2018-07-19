@@ -8,6 +8,10 @@ namespace Chip8
 {
 	public class VM
 	{
+		public static readonly int MEMORY_SIZE_BYTES = 0xFFF;
+		public static readonly int STACK_LENGTH = 0x0F;
+		public static readonly int REGISTERS_LENGTH = 0x10;
+
 		public enum RegisterName
 		{
 			V0 = 0, V1, V2, V3,
@@ -20,12 +24,12 @@ namespace Chip8
 		public byte SP { get; private set; }
 		public ushort I { get; private set; }
 
-		private byte[] mMemory = new byte[0xFFF];
-		private ushort[] mStack = new ushort[0x00F];
-		private byte[] mRegisters = new byte[0x10];
+		private byte[] mMemory = new byte[MEMORY_SIZE_BYTES];
+		private ushort[] mStack = new ushort[STACK_LENGTH];
+		private byte[] mRegisters = new byte[REGISTERS_LENGTH];
 
-		//byte delayTimer;
-		//byte soundTimer;
+		public byte DelayTimer { get; private set; }
+		public byte SoundTimer { get; private set; }
 
 		private Opcode mOpcode;
 		private Random mRandom = new Random();
@@ -38,10 +42,10 @@ namespace Chip8
 			Array.Clear(mMemory, 0, mMemory.Length);
 			Array.Clear(mStack, 0, mStack.Length);
 			Array.Clear(mRegisters, 0, mRegisters.Length);
+			DelayTimer = 0;
+			SoundTimer = 0;
 			mOpcode.Update(0x0, 0x0);
 			mRandom = new Random();
-			//delayTimer = 0;
-			//soundTimer = 0;
 		}
 
 		public void Seed(int seed) => mRandom = new Random(seed);
@@ -53,10 +57,8 @@ namespace Chip8
 			int idx = 0x200;
 			foreach (var op in program)
 			{
-				mMemory[idx] = op.mUpper;
-				idx++;
-				mMemory[idx] = op.mLower;
-				idx++;
+				mMemory[idx++] = op.mUpper;
+				mMemory[idx++] = op.mLower;
 			}
 		}
 
@@ -64,23 +66,31 @@ namespace Chip8
 
 		public byte Register(RegisterName vx) => mRegisters[(int)vx];
 
-		public void OneCycle()
+		private void BoundsCheck()
+		{
+			// TODO:
+			// - 0 <= I < MEMORY_SIZE_BYTES
+			// -PC, SP, bounds check
+			// -PC & 0x1 == 0
+		}
+
+		public void Execute()
 		{
 			// fetch opcode and execute
 			mOpcode.Update(mMemory[PC], mMemory[PC + 1]);
-
 			switch (mOpcode.Type)
 			{
 				case 0x0:
-					if (mOpcode.Value == 0x00e0)
+					if (mOpcode.Value == 0x00E0)
 					{
-						// 00e0 - clear display
+						// 00E0 - clear display
 					}
-					else if (mOpcode.Value == 0x00ee)
+					else if (mOpcode.Value == 0x00EE)
 					{
-						// 00ee - return from subroutine
+						// 00EE - return from subroutine
 						SP--;
 						PC = (ushort)(mStack[SP] + 2);
+						BoundsCheck();
 						mStack[SP] = 0x0;
 					}
 					break;
@@ -93,6 +103,7 @@ namespace Chip8
 					mStack[SP] = PC;
 					PC = mOpcode.NNN;
 					SP++;
+					BoundsCheck();
 					break;
 				case 0x3:
 					// 3xkk - skip next instruction if Vx == kk
@@ -100,6 +111,7 @@ namespace Chip8
 						PC += 4;
 					else
 						PC += 2;
+					BoundsCheck();
 					break;
 				case 0x4:
 					// 4xkk - skip next instruction if Vx != kk
@@ -107,6 +119,7 @@ namespace Chip8
 						PC += 4;
 					else
 						PC += 2;
+					BoundsCheck();
 					break;
 				case 0x5:
 					if (mOpcode.Nibble == 0)
@@ -116,17 +129,20 @@ namespace Chip8
 							PC += 4;
 						else
 							PC += 2;
+						BoundsCheck();
 					}
 					break;
 				case 0x6:
 					// 6xkk - set Vx := kk
 					mRegisters[mOpcode.X] = mOpcode.mLower;
 					PC += 2;
+					BoundsCheck();
 					break;
 				case 0x7:
 					// 7xkk - set Vx := Vx + kk
 					mRegisters[mOpcode.X] += mOpcode.mLower;
 					PC += 2;
+					BoundsCheck();
 					break;
 				case 0x8:
 					switch (mOpcode.Nibble)
@@ -176,6 +192,7 @@ namespace Chip8
 							break;
 					}
 					PC += 2;
+					BoundsCheck();
 					break;
 				case 0x9:
 					if (mOpcode.Nibble == 0)
@@ -185,21 +202,25 @@ namespace Chip8
 							PC += 4;
 						else
 							PC += 2;
+						BoundsCheck();
 					}
 					break;
 				case 0xA:
 					// Annn - set I := nnn
 					I = mOpcode.NNN;
 					PC += 2;
+					BoundsCheck();
 					break;
 				case 0xB:
 					// Bnnn - Jump to location nnn + V0.
 					PC = (ushort)(mOpcode.NNN + mRegisters[0x0]);
+					BoundsCheck();
 					break;
 				case 0xC:
 					// Cxkk - set Vx := random byte AND kk
 					mRegisters[mOpcode.X] = (byte)(mRandom.Next(0, 255) & mOpcode.mLower);
 					PC += 2;
+					BoundsCheck();
 					break;
 				case 0xD:
 					// TODO - drawing
@@ -208,14 +229,59 @@ namespace Chip8
 					// TODO - keyboard input
 					break;
 				case 0xF:
-					// TODO
+					switch (mOpcode.mLower)
+					{
+						case 0x07:
+							// Fx07 - set Vx := DT
+							mRegisters[mOpcode.X] = DelayTimer;
+							break;
+						case 0x0A:
+							// Fx0A - pause for key press, store in Vx
+							// TODO
+							break;
+						case 0x15:
+							// Fx15 - set DT := Vx
+							DelayTimer = mRegisters[mOpcode.X];
+							break;
+						case 0x18:
+							// Fx18 - set ST := Vx
+							SoundTimer = mRegisters[mOpcode.X];
+							break;
+						case 0x1E:
+							// Fx1E - set I := I + Vx
+							I += mRegisters[mOpcode.X];
+							BoundsCheck();
+							break;
+						case 0x29:
+							// TODO
+							break;
+						case 0x33:
+							// Fx33 - place binary digits of Vx in I, I+1, I+2
+							// TODO: throw if not I + 2 < MEMORY_SIZE_BYTES
+							int tmp = mRegisters[mOpcode.X];
+							mMemory[I + 2] = (byte)(tmp % 10);
+							tmp = (tmp - mMemory[I + 2]) / 10;
+							mMemory[I + 1] = (byte)(tmp % 10);
+							tmp = (tmp - mMemory[I + 1]) / 10;
+							mMemory[I] = (byte)(tmp % 10);
+							break;
+						case 0x55:
+							// Fx55 - store registers V0 through Vx in memory starting at I
+							// TODO: I + x + 1 < MEMORY_SIZE_BYTES
+							Array.Copy(mRegisters, 0, mMemory, I, 1 + mOpcode.X);
+							break;
+						case 0x65:
+							// Fx65 - load registers V0 through Vx from memory starting at I
+							// TODO: I + x + 1 < MEMORY_SIZE_BYTES
+							Array.Copy(mMemory, I, mRegisters, 0, 1 + mOpcode.X);
+							break;
+					}
+					PC += 2;
+					BoundsCheck();
 					break;
 			}
 
-			// TODO
-			// -update timers
-			// -PC, SP bounds check
-			// -PC & 0x1 == 0
+			// TODO: update timers
 		}
 	}
 }
