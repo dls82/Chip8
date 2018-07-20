@@ -40,6 +40,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Display.cs" />
+    <Compile Include="Keypad.cs" />
     <Compile Include="VM.cs" />
     <Compile Include="Opcode.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

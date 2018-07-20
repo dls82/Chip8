@@ -26,6 +26,7 @@ namespace Chip8Test
 			// -check registers zero
 			// -zero before 0x200 and after end
 			// -match program
+			// -sprites loaded
 		}
 
 		// opcodes: 1nnn

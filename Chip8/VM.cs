@@ -17,9 +17,9 @@ namespace Chip8
 			VC, VD, VE, VF
 		};
 
-		public ushort PC { get; private set; }	// program counter
-		public byte SP { get; private set; }	// stack pointer
-		public ushort I { get; private set; }	// void pointer
+		public ushort PC { get; private set; }  // program counter
+		public byte SP { get; private set; }    // stack pointer
+		public ushort I { get; private set; }   // void pointer
 
 		private byte[] mMemory = new byte[MEMORY_SIZE_BYTES];
 		private ushort[] mStack = new ushort[STACK_LENGTH];
@@ -27,6 +27,8 @@ namespace Chip8
 
 		public byte DelayTimer { get; private set; }
 		public byte SoundTimer { get; private set; }
+
+		private Display mDisplay = new Display();
 
 		private Opcode mOpcode;
 		private Random mRandom = new Random();
@@ -41,8 +43,28 @@ namespace Chip8
 			Array.Clear(mRegisters, 0, mRegisters.Length);
 			DelayTimer = 0;
 			SoundTimer = 0;
+			mDisplay.Clear();
 			mOpcode.Update(0x0, 0x0);
 			mRandom = new Random();
+
+			// load 5-byte font sprites
+			// must be consistent with opcode Fx29
+			Array.Copy(Display.SPRITE_0, 0, mMemory, 0, 5);
+			Array.Copy(Display.SPRITE_1, 0, mMemory, 5, 5);
+			Array.Copy(Display.SPRITE_2, 0, mMemory, 10, 5);
+			Array.Copy(Display.SPRITE_3, 0, mMemory, 15, 5);
+			Array.Copy(Display.SPRITE_4, 0, mMemory, 20, 5);
+			Array.Copy(Display.SPRITE_5, 0, mMemory, 25, 5);
+			Array.Copy(Display.SPRITE_6, 0, mMemory, 30, 5);
+			Array.Copy(Display.SPRITE_7, 0, mMemory, 35, 5);
+			Array.Copy(Display.SPRITE_8, 0, mMemory, 40, 5);
+			Array.Copy(Display.SPRITE_9, 0, mMemory, 45, 5);
+			Array.Copy(Display.SPRITE_A, 0, mMemory, 50, 5);
+			Array.Copy(Display.SPRITE_B, 0, mMemory, 55, 5);
+			Array.Copy(Display.SPRITE_C, 0, mMemory, 60, 5);
+			Array.Copy(Display.SPRITE_D, 0, mMemory, 65, 5);
+			Array.Copy(Display.SPRITE_E, 0, mMemory, 70, 5);
+			Array.Copy(Display.SPRITE_F, 0, mMemory, 75, 5);
 		}
 
 		public void Seed(int seed) => mRandom = new Random(seed);
@@ -81,6 +103,9 @@ namespace Chip8
 					if (mOpcode.Value == 0x00E0)
 					{
 						// 00E0 - clear display
+						mDisplay.Clear();
+						PC += 2;
+						BoundsCheck();
 					}
 					else if (mOpcode.Value == 0x00EE)
 					{
@@ -89,6 +114,10 @@ namespace Chip8
 						PC = (ushort)(mStack[SP] + 2);
 						BoundsCheck();
 						mStack[SP] = 0x0;
+					}
+					else
+					{
+						// throw
 					}
 					break;
 				case 0x1:
@@ -127,6 +156,10 @@ namespace Chip8
 						else
 							PC += 2;
 						BoundsCheck();
+					}
+					else
+					{
+						// throw
 					}
 					break;
 				case 0x6:
@@ -187,6 +220,9 @@ namespace Chip8
 							mRegisters[0xF] = (byte)(mRegisters[mOpcode.Y] >> 7);
 							mRegisters[mOpcode.X] = (byte)(mRegisters[mOpcode.Y] << 1);
 							break;
+						default:
+							// throw
+							break;
 					}
 					PC += 2;
 					BoundsCheck();
@@ -200,6 +236,10 @@ namespace Chip8
 						else
 							PC += 2;
 						BoundsCheck();
+					}
+					else
+					{
+						// throw
 					}
 					break;
 				case 0xA:
@@ -220,7 +260,13 @@ namespace Chip8
 					BoundsCheck();
 					break;
 				case 0xD:
-					// TODO - drawing
+					// Dxyn - display n-byte sprite at memory location I at (Vx, Vy), set Vf = collision
+					// TODO: I + n < MEMORY_SIZE_BYTES
+					byte[] sprite = new byte[mOpcode.Nibble];
+					Array.Copy(mMemory, sprite, sprite.Length);
+					mDisplay.Draw(mOpcode.X, mOpcode.Y, sprite);
+					PC += 2;
+					BoundsCheck();
 					break;
 				case 0xE:
 					// TODO - keyboard input
@@ -250,7 +296,8 @@ namespace Chip8
 							BoundsCheck();
 							break;
 						case 0x29:
-							// TODO
+							// Fx29 - set I := location of hexidecimal sprit for Vx
+							I = (ushort)(mRegisters[mOpcode.X] * 5);
 							break;
 						case 0x33:
 							// Fx33 - place binary digits of Vx in I, I+1, I+2
@@ -271,6 +318,9 @@ namespace Chip8
 							// Fx65 - load registers V0 through Vx from memory starting at I
 							// TODO: I + x + 1 < MEMORY_SIZE_BYTES
 							Array.Copy(mMemory, I, mRegisters, 0, 1 + mOpcode.X);
+							break;
+						default:
+							// throw
 							break;
 					}
 					PC += 2;
