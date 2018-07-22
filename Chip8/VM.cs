@@ -85,6 +85,8 @@ namespace Chip8
 
 		public byte Register(RegisterName vx) => mRegisters[(int)vx];
 
+		public bool Pixel(int x, int y) => mDisplay[x, y];
+
 		private void BoundsCheck()
 		{
 			// TODO:
@@ -262,9 +264,13 @@ namespace Chip8
 				case 0xD:
 					// Dxyn - display n-byte sprite at memory location I at (Vx, Vy), set Vf = collision
 					// TODO: I + n < MEMORY_SIZE_BYTES
+					// TODO: Vx < Display.WIDTH && Vy < Display.HEIGHT
 					byte[] sprite = new byte[mOpcode.Nibble];
-					Array.Copy(mMemory, sprite, sprite.Length);
-					mDisplay.Draw(mOpcode.X, mOpcode.Y, sprite);
+					Array.Copy(mMemory, I, sprite, 0, sprite.Length);
+					byte xCoord = mRegisters[mOpcode.X];
+					byte yCoord = mRegisters[mOpcode.Y];
+					bool collison = mDisplay.Draw(xCoord, yCoord, sprite);
+					mRegisters[0xF] = (byte)(collison ? 1 : 0);
 					PC += 2;
 					BoundsCheck();
 					break;

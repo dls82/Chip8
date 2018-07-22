@@ -38,21 +38,21 @@ namespace Chip8
 		// Dxyn
 		public bool Draw(byte xAnchor, byte yAnchor, byte[] sprite)
 		{
+			// TODO: xAnchor < WIDTH, yAnchor < HEIGHT
 			// TODO: sprite.Length <= 15
 			bool anyErased = false;
 			for (int y = 0; y < sprite.Length; y++)
 			{
 				for (int x = 0; x < 8; x++)
 				{
-					// TODO: 0 <= x + xAnchor < WIDTH
-					// TODO: 0 <= y + yAnchor < HEIGHT
-					bool inBounds
-						= (x + xAnchor < WIDTH) && (y + yAnchor < HEIGHT);
-					if (inBounds)
+					// allow sprites to spill outside display area
+					int x2 = x + xAnchor;
+					int y2 = y + yAnchor;
+					if (x2 < WIDTH && y2 < HEIGHT)
 					{
-						bool pixelNew = (sprite[y] & (1 << (8 - x))) != 0;
-						bool pixelOld = mPixels[x + xAnchor, y + yAnchor];
-						mPixels[x + xAnchor, y + yAnchor] ^= pixelNew;
+						bool pixelNew = (sprite[y] & (1 << (7 - x))) != 0;
+						bool pixelOld = mPixels[x2, y2];
+						mPixels[x2, y2] = pixelOld ^ pixelNew;
 						if (pixelOld & pixelNew) anyErased = true;
 					}
 				}
